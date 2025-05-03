@@ -22,17 +22,7 @@
               "adminPanel"
             ]
           },
-          {
-            "group": "Essentials",
-            "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/settings",
-              "essentials/navigation",
-              "essentials/reusable-snippets"
-            ]
-          }
+          
         ]
       },
       {
@@ -59,7 +49,7 @@
     "global": {
       "anchors": [
         {
-          "anchor": "Kaabo",
+          "anchor": "Kaabo — Home page",
           "href": "https://kaabo.io",
           "icon": "link"
         },
@@ -67,6 +57,11 @@
           "anchor": "Kaabo admin panel",
           "href": "https://admin.kaabo.io",
           "icon": "link"
+        },
+        {
+          "anchor": ".env",
+          "href": "https://clarenceaigbuza.xyz",
+          "icon": "book-open-cover"
         }
       ]
     }
