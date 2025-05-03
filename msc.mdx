@@ -1,0 +1,69 @@
+---
+title: "MSC & Hosting"
+description: "Description of your new file."
+---
+
+# Web Hosting
+
+Kaabo uses GoDaddy for web domain registration services. GoDaddy provides domain registration and other web hosting services for the Kaabo platform.
+
+## DNS Management
+
+Cloudflare is used for DNS hosting and management. Cloudflare provides enhanced security, performance optimization, and reliable DNS services for the Kaabo platform.
+
+## Server Infrastructure
+
+The Kaabo application (both frontend and backend) is hosted on Vultr's virtual machines. Vultr provides cloud computing services with high-performance SSD VPS (Virtual Private Server) hosting, which offers:
+
+- Scalable resources
+- Global data center locations
+- High-performance infrastructure
+- Cost-effective pricing
+
+## Application Architecture
+
+### Backend
+
+The backend is a Node.js/Express.js application that serves both the API endpoints and the static frontend files in production.
+
+### Frontend
+
+The frontend is a React application built with Vite. In production, the built frontend files are served by the backend Express.js server.
+
+## Frontend Entry Point
+
+The entry point for frontend requests is handled in the server.js file. In production mode, the Express server serves the static files from the built frontend application:
+
+```javascript
+if (process.env.NODE_ENV === "production") {
+  // user static site
+  app.use(express.static(path.join(__dirname, "../../kaabo_user/dist")));
+
+  app.get("*", (req, res) =>
+    res.sendFile(
+      path.resolve(__dirname, "../", "../", "kaabo_user", "dist", "index.html")
+    )
+  );
+} else {
+  app.get("/", (req, res) => res.send("Please set to production"));
+}
+```
+
+This configuration:
+
+1. Serves static files (JS, CSS, images, etc.) from the `kaabo_user/dist` directory
+2. For any other routes that don't match API endpoints, it serves the `index.html` file from the frontend build, allowing the React router to handle client-side routing
+
+## Monitoring
+
+Kaabo uses foresightapi.xyz to monitor tags on the frontend. This service provides insights into user interactions, performance metrics, and helps track frontend behavior in production.
+
+## Deployment Workflow
+
+The typical deployment workflow involves:
+
+1. Building the frontend application (`npm run build` in the kaabo_user directory)
+2. Deploying the backend application to the Vultr VM
+3. Ensuring the built frontend files are accessible to the backend server
+
+This setup allows for a simplified deployment process where a single server handles both the API and serves the frontend application.
