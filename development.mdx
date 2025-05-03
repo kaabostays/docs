@@ -1,107 +1,267 @@
 ---
-title: 'Development'
-description: 'Preview changes locally to update your docs'
+title: "Server Side"
 ---
 
-<Info>
-  **Prerequisite**: Please install Node.js (version 19 or higher) before proceeding. <br />
-  Please upgrade to ```docs.json``` before proceeding and delete the legacy ```mint.json``` file.
-</Info>
+## System Architecture
 
-Follow these steps to install and run Mintlify on your operating system:
+The Kaabo backend follows a RESTful API architecture built with Node.js and Express.js, using MongoDB as the primary database. The architecture is organized into the following key components:
 
-**Step 1**: Install Mintlify:
+### Core Components
 
-<CodeGroup>
+- **Controllers**: Handle business logic and request processing
+- **Models**: Define database schemas and data structure
+- **Routes**: Define API endpoints and request routing
+- **Middleware**: Handle authentication, validation, and request processing
+- **Utils**: Contain utility functions and helper methods
+- **Config**: Manage application configuration and environment variables
 
-  ```bash npm
-  npm i -g mintlify
-  ```
+## Project Structure
 
-```bash yarn
-yarn global add mintlify
+```
+backend/
+├── config/
+│   ├── db.js                # Database configuration
+├── controllers/
+│   ├── adminListingController.js
+│   ├── adminUserController.js
+│   ├── basket/              # Basket-related controllers
+│   ├── bookingController.js
+│   ├── category/            # Category-related controllers
+│   ├── draftController.js
+│   ├── experienceController.js
+│   ├── experienceDraftController.js
+│   ├── feedbackController.js
+│   ├── investment/          # Investment-related controllers
+│   ├── investment-booking/  # Investment booking controllers
+│   ├── listingController.js
+│   ├── messageController.js
+│   ├── notificationController.js
+│   ├── payment.js
+│   ├── poc/                # Point of Contact controllers
+│   ├── promoCode/          # Promo code controllers
+│   ├── resetPassword.js
+│   ├── search/             # Search-related controllers
+│   ├── security/           # Security-related controllers
+│   ├── uploadImage.js
+│   └── userController.js
+├── middleware/
+│   ├── authMiddleware.js   # Authentication middleware
+├── model/
+│   ├── admin.js
+│   ├── basket.js
+│   ├── bookingModel.js
+│   ├── draftModel.js
+│   ├── experienceDraftModel.js
+│   ├── experienceModel.js
+│   ├── feedbackModel.js
+│   ├── investment.js
+│   ├── investmentInqModel.js
+│   ├── investmentNotesModel.js
+│   ├── listingModel.js
+│   ├── messageModel.js
+│   ├── notificationsModel.js
+│   └── userModel.js
+├── routes/
+│   ├── adminRoute.js
+│   ├── basketRoute.js
+│   ├── bookingRoutes.js
+│   ├── draftRoutes.js
+│   ├── experienceRoute.js
+│   ├── feedbackRoutes.js
+│   ├── investmentRoute.js
+│   ├── listingRoutes.js
+│   ├── messageRoute.js
+│   ├── notificationRoute.js
+│   ├── rate.js
+│   ├── userRoutes.js
+│   └── wishlistRoutes.js
+├── utils/
+│   ├── emailTransporter.js
+│   ├── helper.js
+│   ├── marketingWebhook.js
+│   └── cron-func.js
+└── server.js              # Application entry point
 ```
 
-</CodeGroup>
+## Key Features
 
-**Step 2**: Navigate to the docs directory (where the `docs.json` file is located) and execute the following command:
+### Authentication & User Management
 
-```bash
-mintlify dev
-```
+- User registration and login
+- JWT-based authentication
+- Password reset functionality
+- User profile management
+- Admin authentication
+- Email verification
 
-A local preview of your documentation will be available at `http://localhost:3000`.
+### Listing Management
 
-### Custom Ports
+- Create, read, update, delete (CRUD) operations for property listings
+- Draft functionality for saving incomplete listings
+- Image upload and management
+- Location-based search
+- Filtering and sorting options
 
-By default, Mintlify uses port 3000. You can customize the port Mintlify runs on by using the `--port` flag. To run Mintlify on port 3333, for instance, use this command:
+### Experience Management
 
-```bash
-mintlify dev --port 3333
-```
+- CRUD operations for experiences/activities
+- Draft functionality for experiences
+- Scheduling with recurring or fixed options
+- Category management
+- Search and filtering
 
-If you attempt to run Mintlify on a port that's already in use, it will use the next available port:
+### Booking System
 
-```md
-Port 3000 is already in use. Trying 3001 instead.
-```
+- Property booking
+- Experience booking
+- Payment processing
+- Booking status management
+- Calendar integration with Google Calendar and iCal
+- Email notifications
 
-## Mintlify Versions
+### Investment Management
 
-Please note that each CLI release is associated with a specific version of Mintlify. If your local website doesn't align with the production version, please update the CLI:
+- Investment property listings
+- Investment inquiries
+- Notes and tracking
 
-<CodeGroup>
+### Additional Features
 
-```bash npm
-npm i -g mintlify@latest
-```
+- Wishlist functionality
+- Feedback and ratings
+- Messaging system
+- Notifications
+- Basket/cart functionality
+- Promo code management
 
-```bash yarn
-yarn global upgrade mintlify
-```
+## API Endpoints
 
-</CodeGroup>
+### User Routes
 
-## Validating Links
+- `POST /user` - Register a new user
+- `POST /user/login` - User login
+- `GET /user` - Get user information
+- `PATCH /user/:id` - Update user information
+- `DELETE /user/:id` - Delete user
+- `POST /user/verify/:token` - Verify user email
+- `POST /user/get-verificaion/:id` - Request email verification
+- `POST /user/upload-image` - Upload user profile image
 
-The CLI can assist with validating reference links made in your documentation. To identify any broken links, use the following command:
+### Listing Routes
 
-```bash
-mintlify broken-links
-```
+- `GET /listing` - Get all listings
+- `GET /listing/stay/:id` - Get listing details
+- `GET /listing/search` - Search for listings
+- `POST /listing/admin/:id` - Add a new listing (admin)
+- `DELETE /listing/admin/:id` - Delete a listing (admin)
+- `PATCH /listing/admin/:id` - Update a listing (admin)
+
+### Experience Routes
+
+- `GET /experience` - Get all experiences
+- `GET /experience/:id` - Get experience details
+- `GET /experience/find` - Search for experiences
+- `GET /experience/limit` - Get limited experiences
+- `GET /experience/suggest/find` - Get suggested experiences
+
+### Booking Routes
+
+- `PATCH /booking` - Book a stay
+- `GET /booking/:id` - Get booking details
+- `GET /booking/user/:userId` - Get user's bookings
+- `GET /booking/history/:userId` - Get booking history
+- `POST /booking/create` - Create a booking
+- `POST /booking/send/mail` - Send booking email
+- `POST /booking/pay` - Process payment
+
+### Draft Routes
+
+- `POST /draft` - Add to draft
+- `GET /draft/get/:id` - Get all drafts
+- `POST /draft/transfer/:id` - Transfer draft to listing
+- `PUT /draft/:id` - Update draft
+- `GET /draft/:id` - Get draft by ID
+
+### Investment Routes
+
+- `POST /investment/inquiry` - Create investment inquiry
+- `GET /investment/inquiry` - Get all inquiries
+- `GET /investment/inquiry/:id` - Get inquiry by ID
+- `PATCH /investment/inquiry/update/:id` - Update inquiry
+- `POST /investment/create` - Create investment
+- `GET /investment/get/all` - Get all investments
+- `GET /investment/get/:id` - Get investment by ID
+- `PATCH /investment/edit/:id` - Edit investment
+- `DELETE /investment/delete/:id` - Delete investment
+
+### Wishlist Routes
+
+- `POST /wishlist/add` - Add to wishlist
+- `GET /wishlist/get` - Get user's wishlist
+- `PATCH /wishlist/remove/:id` - Remove from wishlist
+
+### Feedback Routes
+
+- `POST /feedback` - Add feedback
+- `GET /feedback/:listingId` - Get feedback for listing
+- `GET /feedback/user/:userId` - Get user's feedback
+
+## Database Models
+
+### User Model
+
+Stores user information including authentication details, profile information, and location data.
+
+### Listing Model
+
+Stores property listing information including title, description, location, price, amenities, availability, and images.
+
+### Experience Model
+
+Stores experience/activity information including title, description, category, capacity, scheduling, location, price, and images.
+
+### Booking Model
+
+Stores booking information including user, listing/experience, dates, price, status, and reference number.
+
+### Draft Models
+
+Temporary storage for incomplete listings and experiences before they are published.
+
+### Investment Models
+
+Stores investment property information and related inquiries.
+
+### Feedback Model
+
+Stores user reviews and ratings for listings and experiences.
+
+### Message Model
+
+Stores user-to-user and user-to-admin messages.
+
+### Notification Model
+
+Stores user notifications for various events in the system.
+
+## Authentication
+
+The system uses JWT (JSON Web Tokens) for authentication. The `authMiddleware.js` file contains the `protect` middleware that verifies the token and attaches the user to the request object.
+
+## Third-Party Integrations
+
+- **Google Calendar API**: For calendar management and event scheduling
+- **Cloudinary**: For image storage and management
+- **Email Service**: For sending notifications and verification emails
+- **Payment Processing**: Integration with payment gateways
+
+## Utilities
+
+- **emailTransporter.js**: Handles email sending functionality
+- **helper.js**: Contains utility functions used throughout the application
+- **marketingWebhook.js**: Handles integration with marketing automation platforms
+- **cron-func.js**: Manages scheduled tasks and background processes
 
 ## Deployment
 
-<Tip>
-  Unlimited editors available under the [Pro
-  Plan](https://mintlify.com/pricing) and above.
-</Tip>
-
-If the deployment is successful, you should see the following:
-
-<Frame>
-  <img src="/images/checks-passed.png" style={{ borderRadius: '0.5rem' }} />
-</Frame>
-
-## Code Formatting
-
-We suggest using extensions on your IDE to recognize and format MDX. If you're a VSCode user, consider the [MDX VSCode extension](https://marketplace.visualstudio.com/items?itemName=unifiedjs.vscode-mdx) for syntax highlighting, and [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode) for code formatting.
-
-## Troubleshooting
-
-<AccordionGroup>
-  <Accordion title='Error: Could not load the "sharp" module using the darwin-arm64 runtime'>
-
-    This may be due to an outdated version of node. Try the following:
-    1. Remove the currently-installed version of mintlify: `npm remove -g mintlify`
-    2. Upgrade to Node v19 or higher.
-    3. Reinstall mintlify: `npm install -g mintlify`
-  </Accordion>
-
-  <Accordion title="Issue: Encountering an unknown error">
-  
-    Solution: Go to the root of your device and delete the \~/.mintlify folder. Afterwards, run `mintlify dev` again.
-  </Accordion>
-</AccordionGroup>
-
-Curious about what changed in the CLI version? [Check out the CLI changelog.](https://www.npmjs.com/package/mintlify?activeTab=versions)
+The application is designed to be deployed to a Node.js hosting environment with access to a MongoDB database. Environment variables are used for configuration to support different deployment environments.
