@@ -1,0 +1,743 @@
+# Overview
+
+The Kaabo User Frontend is the client-facing application for the Kaabo platform, allowing users to browse and book stays, experiences, and investment opportunities. It is built using React with Vite as the build tool and uses Tailwind CSS for styling.
+
+## Project Structure
+
+```
+kaabo_user/
+├── .env                    # Environment variables
+├── dist/                   # Build output directory
+├── public/                 # Static assets
+├── src/
+│   ├── App.jsx            # Main application component
+│   ├── ScrollToTop.jsx    # Utility component for scrolling
+│   ├── assets/            # Images, icons, and other assets
+│   ├── components/        # Reusable UI components
+│   │   ├── button/        # Button components
+│   │   ├── cards/         # Card components
+│   │   ├── chat/          # Chat components
+│   │   ├── datepicker/    # Date picker components
+│   │   ├── input/         # Input components
+│   │   ├── nav/           # Navigation components
+│   │   ├── stay/          # Stay-related components
+│   │   └── templates/     # Template components
+│   ├── context/           # React context providers
+│   │   ├── AuthContext.jsx # Authentication context
+│   │   ├── BasketContext.jsx # Shopping cart context
+│   │   ├── UserContext.jsx # User data context
+│   │   └── WishlistContext.jsx # Wishlist context
+│   ├── features/          # Feature components
+│   │   └── search/        # Search functionality
+│   ├── hooks/             # Custom React hooks
+│   │   ├── useAuth.js     # Authentication hook
+│   │   ├── useExperience.js # Experience data hook
+│   │   ├── useLogin.js    # Login functionality hook
+│   │   ├── useLogout.js   # Logout functionality hook
+│   │   ├── useSignup.js   # Signup functionality hook
+│   │   └── useUserLocation.js # User location hook
+│   ├── lib/               # Utility functions
+│   │   ├── FeedbackHelper.js # Feedback utility functions
+│   │   ├── helper.js      # General utility functions
+│   │   └── timezones.json # Timezone data
+│   ├── pages/             # Page components
+│   │   ├── Dashboard.jsx  # User dashboard page
+│   │   └── new/           # New page components
+│   ├── index.css          # Global CSS
+│   └── main.jsx           # Application entry point
+├── tailwind.config.js     # Tailwind CSS configuration
+└── vite.config.js         # Vite configuration
+```
+
+## Key Features
+
+### Authentication
+
+The application uses a custom authentication system with JWT tokens. The `useAuth` hook and `AuthContext` manage the authentication state throughout the application.
+
+#### Login
+
+```javascript
+// From useLogin.js
+const login = async (userData) => {
+  setIsLoading(true);
+  setError(null);
+
+  const response = await fetch(`${baseUrl}/user/login`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(userData),
+  });
+  const json = await response.json();
+
+  if (!response.ok) {
+    setIsLoading(false);
+    toast.error(json.error);
+  }
+  if (response.ok) {
+    // save the user to local storage
+    localStorage.setItem("user", JSON.stringify(json));
+
+    // update auth context
+    dispatch({
+      type: "LOGIN",
+      payload: json,
+    });
+
+    setIsLoading(false);
+    setError(true);
+
+    if (JSON.parse(localStorage.getItem("previousScreen")) !== null) {
+      navigate(JSON.parse(localStorage.getItem("previousScreen")));
+    } else {
+      if (hasCheckout) {
+        navigate(`/checkout/stay?${hasCheckout.replace(/"/g, "")}`);
+      } else {
+        navigate("/");
+      }
+    }
+  }
+};
+```
+
+#### Logout
+
+```javascript
+// From useLogout.js
+export const useLogout = () => {
+  const { dispatch } = useAuth();
+  const logout = () => {
+    // delete user from local storage
+    localStorage.removeItem("user");
+
+    dispatch({
+      type: "LOGOUT",
+    });
+  };
+
+  return { logout };
+};
+```
+
+#### Signup
+
+```javascript
+// From useSignup.js
+const signup = async (signupData) => {
+  setIsLoading(true);
+  setError(null);
+
+  const response = await fetch(`${baseUrl}/user/`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(signupData),
+  });
+  const json = await response.json();
+
+  if (!response.ok) {
+    setIsLoading(false);
+    toast.error(json.error);
+  }
+  if (response.ok) {
+    setIsLoading(false);
+
+    if (JSON.parse(localStorage.getItem("previousScreen")) !== null) {
+      navigate(JSON.parse(localStorage.getItem("previousScreen")));
+    } else {
+      if (hasCheckout) {
+        navigate(`/checkout/stay?${hasCheckout.replace(/"/g, "")}`);
+      } else {
+        console.log("doesn't have");
+        navigate("/");
+      }
+    }
+
+    // save the user to local storage
+    localStorage.setItem("user", JSON.stringify(json));
+
+    // update auth context
+    dispatch({
+      type: "LOGIN",
+      payload: json,
+    });
+  }
+};
+```
+
+### User Dashboard
+
+The Dashboard page displays the user's bookings, activities, and account information:
+
+```javascript
+// From Dashboard.jsx
+const Dashboard = () => {
+  const { bookedData, isLoading, feedback, getVerification } =
+    useContext(UserContext);
+  const { user } = useAuth();
+
+  // detect current time for greeting message
+  function getCurrentTime() {
+    const now = new Date();
+    const hours = now.getHours();
+    const formattedTime = `${hours.toString().padStart(2, "0")}`;
+    return formattedTime;
+  }
+  const time = parseInt(getCurrentTime());
+
+  const renderCards = (item, index) => {
+    if (item.bookingType === "experience") {
+      return (
+        <ExperienceCard
+          reference={item.reference}
+          experience={item.experience}
+          type={"preview"}
+          status={item.status}
+          linkTo={item.experience?._id}
+          currency={item.currency}
+          category={item.experience?.category}
+          key={index}
+          reviews={item.experience?.reviews}
+          city={item.experience?.location.city}
+          country={item.experience?.location.country}
+          title={item.experience?.title}
+          description={item.experience?.description}
+          amount={item.price}
+          images={item.experience?.images.flatMap((img) => img.secureUrl)}
+          day={item.experience?.day}
+          date={item.experience?.date}
+          rate={200}
+          hasDiscount={item.experience?.discount.isTrue}
+          discountPercentage={item.experience?.discount.percentage}
+        />
+      );
+    } else if (item.bookingType === "stay") {
+      return (
+        <StayCard
+          reference={item.reference}
+          listing={item.listing}
+          status={item.status}
+          type={"preview"}
+          linkTo={item.listing._id}
+          key={item._id}
+          check_in={item.check_in}
+          check_out={item.check_out}
+          apartment={item?.listing.apartment.apartment_type}
+          city={item?.listing.location.city}
+          country={item.listing.location.country}
+          title={item.listing.title}
+          amount={item.price}
+          currency={item.currency}
+          images={item?.listing.images.flatMap((img) => img.secureUrl)}
+          rate={20}
+        />
+      );
+    }
+  };
+
+  return (
+    <section className="w-full mt-20 h-10 px-10 lg:px-20">
+      {/* verification area */}
+      {user && !user.verified && (
+        <div className="-mb-28 mt-28 flex items-center space-x-2 bg-primary400 bg-opacity-10 w-fit p-3 rounded-lg">
+          <p>Email not verified</p>
+          <button
+            onClick={getVerification}
+            className="underline hover:text-primary"
+          >
+            <p>Verify your email</p>
+          </button>
+        </div>
+      )}
+      <div>
+        <h1 className="mt-36 text-2xl lg:text-3xl font-bold mb-2">
+          Hello, {user?.name}{" "}
+        </h1>
+        <p className="text-sm text-primary">
+          Good{" "}
+          {time < 12
+            ? "Morning 🔆"
+            : time > 12 && time < 14
+            ? "Afternoon 🌞"
+            : time > 14
+            ? "Evening 🌙"
+            : ""}
+        </p>
+      </div>
+
+      {/* activities starts here */}
+      <h3 className="py-10 text-sm font-medium">All Activities</h3>
+      <div className="px-5 md:px-3 container flex items-center flex-col md:flex-row md:flex-wrap justify-start gap-x-[2.5%] gap-y-10">
+        {bookedData.length < 1 ? (
+          <div className="w-full h-full mt-20 flex items-center justify-center">
+            <div className="flex flex-col items-center justify-center">
+              <img src={emptyImg} />
+              <p className="text-primary">
+                Nothing to see here, try booking an experience or stay
+              </p>
+              <Link to="/">
+                <button className="bg-primary rounded-lg p-3 px-5 mt-5 text-white">
+                  Find a stay
+                </button>
+              </Link>
+            </div>
+          </div>
+        ) : (
+          bookedData?.map(renderCards)
+        )}
+      </div>
+    </section>
+  );
+};
+```
+
+### Stay Listings
+
+The application allows users to browse and book property listings. The `StayCard` component displays listing information:
+
+```javascript
+// From components/index.js
+export { default as StayCard } from "./cards/StayCard";
+```
+
+### Experience Listings
+
+Similar to stays, users can browse and book experiences/activities:
+
+```javascript
+// From components/index.js
+export { default as ExperienceCard } from "./cards/ExperienceCard";
+```
+
+### Search Functionality
+
+The application includes search components for finding stays and experiences:
+
+```javascript
+// From features/index.js
+export { default as SearchStay } from "./search/components/SearchStay";
+export { default as StaySearch } from "./search/components/StaySearch";
+```
+
+### Feedback System
+
+Users can provide feedback and ratings for their stays and experiences:
+
+```javascript
+// From components/stay/FeedbackModal.jsx
+export default function FeedbackModal({ onClick, listing }) {
+  const [trigger, setTrigger] = useState(true);
+  const [rate, setRate] = useState();
+  const [review, setReview] = useState("");
+  const [isDisabled, setIsDisabled] = useState(false);
+  const { user } = useAuth();
+
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+  }, []);
+
+  const handleRatingChange = (newRating) => {
+    setRate(newRating);
+  };
+
+  const reqData = {
+    user: user._id,
+    listing: listing,
+    rating: rate,
+    review: review,
+  };
+
+  const baseUrl = import.meta.env.VITE_API;
+
+  const addFeedback = async () => {
+    setIsDisabled(true);
+    try {
+      const response = await fetch(`${baseUrl}/feedback`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${user.token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(reqData),
+      });
+
+      if (response.ok) {
+        setTimeout(() => {
+          setIsDisabled(false);
+          setTrigger(false);
+          document.body.style.overflow = "";
+        }, 3000);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleTrigger = () => {
+    setTrigger(false);
+    document.body.style.overflow = "";
+  };
+
+  return trigger ? (
+    <div className="min-h-screen min-w-screen absolute top-0 right-0 left-0 flex items-center justify-center z-[5000] backdrop-blur-sm bg-white bg-opacity-70">
+      <div className="bg-white rounded-lg w-[90%] md:w-[60%] lg:w-[40%] p-5 drop-shadow-2xl">
+        <button
+          onClick={handleTrigger}
+          className="rounded-full bg-gray-200 p-2 mb-3"
+        >
+          <p>Close</p>
+        </button>
+        <h3 className="font-semibold w-full text-center">Rate Your Stay</h3>
+        <div className="my-7">
+          <StarRating onChange={handleRatingChange} />
+        </div>
+        <TextInput
+          onChange={(e) => setReview(e.target.value)}
+          placeholder="Say something about the stay"
+        />
+        <div className="mt-5">
+          <PrimaryButton
+            disabled={isDisabled}
+            onClick={addFeedback}
+            text="Submit"
+          />
+        </div>
+      </div>
+    </div>
+  ) : null;
+}
+```
+
+### User Context
+
+The `UserContext` manages user data and provides it to components throughout the application:
+
+```javascript
+// From context/UserContext.jsx (partial)
+export const UserContextProvider = ({ children }) => {
+  const { user } = useAuth();
+  const [bookedData, setBookedData] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [userState, userDispatch] = useReducer(userReducer, InitialUser);
+  const [previousScreen, setPreviousScreen] = useState(null);
+  const [historyData, setHistoryData] = useState([]);
+  const [feedback, setFeedback] = useState([]);
+
+  const baseUrl = import.meta.env.VITE_API;
+
+  // get booking details for user profile
+  useEffect(() => {
+    setIsLoading(true);
+    const fetchData = async () => {
+      const response = await fetch(`${baseUrl}/booking/user/${user._id}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${user.token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      const data = await response.json();
+      const filteredData = data.filter((item) => item.status === "success");
+      setBookedData(filteredData);
+
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 3000);
+    };
+
+    const fetchHistory = async () => {
+      const response = await fetch(`${baseUrl}/booking/history/${user._id}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${user.token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      const data = await response.json();
+      setHistoryData([...data]);
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 3000);
+    };
+
+    // fetch reviews
+    const fetchReviews = async () => {
+      const response = await fetch(`${baseUrl}/feedback/user/${user._id}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${user.token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setFeedback([...data]);
+      } else {
+        console.error(data);
+      }
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 3000);
+    };
+
+    if (user) {
+      fetchData();
+      fetchHistory();
+      fetchReviews();
+    }
+  }, [user]);
+
+  // ... rest of the context provider
+};
+```
+
+### Experience Data Hook
+
+The `useExperience` hook manages experience data and provides methods for fetching and searching experiences:
+
+```javascript
+// From hooks/useExperience.js (partial)
+const useExperience = (id) => {
+  const [experiences, setExperiences] = useState([]);
+  const [experience, setExperience] = useState({});
+  const [expIsLoading, setExpIsLoading] = useState(true);
+  const [expSearchIsLoading, setExpSearchIsLoading] = useState(false);
+  const [expSearchData, setExpSearchData] = useState([]);
+  const [expSearchLimitData, setExpSearchLimitData] = useState([]);
+  const [searchExpWithLimitIsLoading, setSearchExpWithLimitIsLoading] =
+    useState(false);
+  const params = new URLSearchParams();
+
+  // Get all experience from the DB
+  const getExperiences = async () => {
+    const res = await fetch(`${baseUrl}/experience`);
+    const data = await res.json();
+    setExperiences([...data]);
+    setTimeout(() => {
+      setExpIsLoading(false);
+    }, 1000);
+  };
+
+  const getSingleExp = async () => {
+    setExpIsLoading(true);
+    const res = await fetch(`${baseUrl}/experience/${id}`);
+    const data = await res.json();
+    setExperience(data);
+    setTimeout(() => {
+      setExpIsLoading(false);
+    }, 1000);
+  };
+
+  const expLocationSearchHandler = async ({
+    location,
+    startDate,
+    endDate,
+    except,
+    userCountry,
+    userId,
+    limit,
+  }) => {
+    try {
+      setExpIsLoading(true);
+      const res = await axios.get(
+        `${baseUrl}/experience/find?searchValue=${location}&startDate=${
+          startDate?.split("T")[0]
+        }&endDate=${
+          endDate?.split("T")[0]
+        }&userId=${userId}&userCountry=${userCountry}&limit=${limit}`
+      );
+      setTimeout(() => {
+        setExpIsLoading(false);
+      }, 1000);
+      return res.data;
+    } catch (error) {
+      setTimeout(() => {
+        setExpIsLoading(false);
+      }, 1000);
+    }
+  };
+
+  // ... rest of the hook
+};
+```
+
+### User Location Hook
+
+The `useUserLocation` hook manages user location data:
+
+```javascript
+// From hooks/useUserLocation.js
+const useUserLocation = () => {
+  const [userLocationI, setUserLocationi] = useState({});
+  const [location, setLocation] = useState({});
+
+  const getLocationFromLocalStorage = () => {
+    const localData = JSON.parse(localStorage.getItem("location"));
+    if (localData) setLocation(localData);
+    if (localData) setUserLocationi(localData);
+  };
+
+  return { getLocationFromLocalStorage, location, userLocationI };
+};
+```
+
+### Utility Functions
+
+The application includes several utility functions in the `lib` directory:
+
+```javascript
+// From lib/helper.js (partial)
+function roundUpNumber(number) {
+  return Math.ceil(number);
+}
+
+const getTotalRating = (feedback) => {
+  if (Array.isArray(feedback) && feedback.length) {
+    const ratingSum = feedback.reduce((acc, fb) => {
+      return acc + fb.rating;
+    }, 0);
+    const totalRating = parseInt(ratingSum) / parseInt(feedback.length);
+
+    return parseFloat(totalRating).toFixed(1);
+  } else return 0;
+};
+
+dayjs.extend(duration);
+
+function handleTimeCreated(createdAt) {
+  const now = dayjs();
+  const then = dayjs(createdAt);
+  const diff = now.diff(then);
+  const durationObj = dayjs.duration(diff);
+  if (durationObj.asSeconds() < 60) {
+    return `${Math.floor(durationObj.asSeconds())}s`;
+  } else if (durationObj.asMinutes() < 60) {
+    return `${Math.floor(durationObj.asMinutes())}m`;
+  } else if (durationObj.asHours() < 24) {
+    return `${Math.floor(durationObj.asHours())}h`;
+  } else {
+    return `${Math.floor(durationObj.asDays())}d`;
+  }
+}
+```
+
+### Styling
+
+The application uses Tailwind CSS for styling. The primary colors are defined in the tailwind.config.js file:
+
+```javascript
+theme: {
+  extend: {
+    colors: {
+      primary: "#3D5554",
+      primary400: "#0C2B29",
+      foundation: "#666666",
+    },
+  },
+},
+```
+
+### API Integration
+
+The application communicates with the backend API using fetch or axios. The base URL for API requests is stored in an environment variable:
+
+```javascript
+const baseUrl = import.meta.env.VITE_API;
+```
+
+### Error Handling
+
+The application uses toast notifications for error handling and user feedback:
+
+```javascript
+import { toast } from "react-toastify";
+
+// Example usage
+if (!response.ok) {
+  setIsLoading(false);
+  toast.error(json.error);
+}
+```
+
+### Analytics and Tracking
+
+The application includes Google Analytics and Microsoft Clarity for tracking user behavior:
+
+```html
+<!-- Google tag (gtag.js) -->
+<script
+  async
+  src="https://www.googletagmanager.com/gtag/js?id=G-TR6K0Y8JW4"
+></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag() {
+    dataLayer.push(arguments);
+  }
+  gtag("js", new Date());
+
+  gtag("config", "G-TR6K0Y8JW4");
+</script>
+
+<!-- Microsoft Clarity -->
+<script type="text/javascript">
+  (function (c, l, a, r, i, t, y) {
+    c[a] =
+      c[a] ||
+      function () {
+        (c[a].q = c[a].q || []).push(arguments);
+      };
+    t = l.createElement(r);
+    t.async = 1;
+    t.src = "https://www.clarity.ms/tag/" + i;
+    y = l.getElementsByTagName(r)[0];
+    y.parentNode.insertBefore(t, y);
+  })(window, document, "clarity", "script", "nbaned1uad");
+</script>
+```
+
+### Build and Deployment
+
+The application is built using Vite and can be deployed to any static hosting service. The build output is stored in the `dist` directory.
+
+### SEO Optimization
+
+The application includes meta tags for SEO optimization:
+
+```html
+<!-- seo -->
+<meta name="description" content="Experience Africa like never before" />
+<meta name="keywords" content="Kaabo Travels" />
+<meta property="og:title" content="Kaabo Travels" />
+<meta
+  property="og:image"
+  content="https://res.cloudinary.com/kaaboimages/image/upload/v1724430813/Kaabo%20frontend/kaabo_social_mediaArtboard_2_kbo7qv.webp "
+/>
+<meta property="og:description" content="Experience Africa like never before" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://www.kaabo.io" />
+
+<meta
+  name="twitter:card"
+  content="https://res.cloudinary.com/kaaboimages/image/upload/v1724430813/Kaabo%20frontend/kaabo_social_mediaArtboard_2_kbo7qv.webp "
+/>
+<meta name="twitter:title" content="Kaabo Travels" />
+<meta
+  name="twitter:description"
+  content="Experience africa like never before"
+/>
+<meta
+  property="twitter:image"
+  content="https://res.cloudinary.com/kaaboimages/image/upload/v1724430813/Kaabo%20frontend/kaabo_social_mediaArtboard_2_kbo7qv.webp "
+/>
+```
+
+## Security Considerations
+
+- Authentication is handled using JWT tokens
+- Sensitive operations require authentication
+- User sessions are stored in localStorage
+- API requests include authentication headers
