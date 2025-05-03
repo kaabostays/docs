@@ -1,0 +1,332 @@
+---
+title: "Admin Panel"
+---
+
+# Overview
+
+The Kaabo Control Center is the administrative panel for the Kaabo platform, providing a user interface for administrators to manage listings, experiences, bookings, users, and other aspects of the system. It is built using React with Vite as the build tool and uses Tailwind CSS for styling.
+
+## Project Structure
+
+```
+kaabo_control_center/
+├── .env                    # Environment variables
+├── dist/                   # Build output directory
+├── public/                 # Static assets
+├── src/
+│   ├── App.jsx            # Main application component
+│   ├── assets/            # Images, icons, and other assets
+│   ├── components/        # Reusable UI components
+│   ├── context/           # React context providers
+│   ├── hooks/             # Custom React hooks
+│   ├── pages/             # Page components
+│   ├── test/              # Test files
+│   ├── utils/             # Utility functions
+│   ├── index.css          # Global CSS
+│   └── main.jsx           # Application entry point
+├── tailwind.config.js     # Tailwind CSS configuration
+└── vite.config.js         # Vite configuration
+```
+
+## Key Features
+
+### Authentication
+
+The Control Center uses a custom authentication system with JWT tokens. The `useAuth` hook and `AuthContext` manage the authentication state throughout the application.
+
+```javascript
+// Example from useLogin.js
+const login = async (userData, ipDetails) => {
+  setIsLoading(true);
+  setError(null);
+
+  const response = await fetch(`${baseUrl}/user/admin/login`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(userData),
+  });
+  const json = await response.json();
+
+  if (!response.ok) {
+    toast.error(json.message);
+    setIsLoading(false);
+    setError(json.error);
+  }
+  if (response.ok) {
+    // save the user to local storage
+    saveIp(ipDetails);
+    sessionStorage.setItem("userAdmin", JSON.stringify(json));
+
+    // update auth context
+    dispatch({
+      type: "LOGIN",
+      payload: json,
+    });
+
+    setIsLoading(false);
+  }
+};
+```
+
+### Dashboard
+
+The dashboard provides an overview of the platform's performance, including:
+
+- Total number of users
+- Booking statistics
+- Revenue metrics
+- Recent activities
+
+### User Management
+
+Administrators can view and manage user accounts through the User page:
+
+```javascript
+// Example from User.jsx
+export default function User() {
+  const { userState } = useContext(ListingContext);
+
+  const createUsers = (data, index) => {
+    return (
+      <div className="grid grid-cols-6 gap-10 w-full bg-[#F9FAFB] text-[#475467] px-10 h-14 text-xs">
+        <div className="w-[100%] flex col-span-2 items-center">
+          <p>{data.first_name + " " + data.last_name}</p>
+        </div>
+
+        <div className="w-[100%] col-span-2 flex items-center">
+          <p>{data.email}</p>
+        </div>
+        <div className="w-[100%] flex items-center">
+          <p>{dayjs(data.createdAt).format("DD MMM YY")}</p>
+        </div>
+
+        <div className="w-[100%] flex items-center">
+          <p>{dayjs(data.updatedAt).format("DD MMM YY")}</p>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="w-full pl-[25%] pr-[5%] pt-12 flex flex-col space-x-3 min-h-screen">
+      <div className="mt-10 w-full">
+        <p>Total number of users</p>
+        <UserChart />
+      </div>
+      <div className="my-10">
+        <p>All users</p>
+      </div>
+
+      <div className="grid grid-cols-6 gap-10 w-full bg-[#F9FAFB] text-[#475467] px-10 h-14 text-xs">
+        <div className="w-[100%] flex col-span-2 items-center">
+          <p>Full name</p>
+        </div>
+
+        <div className="w-[100%] col-span-2 flex items-center">
+          <p>Email</p>
+        </div>
+        <div className="w-[100%] flex items-center">
+          <p>Join date</p>
+        </div>
+
+        <div className="w-[100%] flex items-center">
+          <p>Last account update</p>
+        </div>
+      </div>
+
+      <section className="overflow-y-scroll h-[30rem]">
+        {userState.map(createUsers)}
+      </section>
+    </div>
+  );
+}
+```
+
+### Listing Management
+
+Administrators can create, edit, and delete property listings through the following features:
+
+- **Manage Stay**: View and manage all property listings
+- **Host Stay**: Create new property listings
+- **Edit Stay**: Modify existing property listings
+
+### Experience Management
+
+Similar to listings, administrators can manage experiences/activities:
+
+- **Manage Experience**: View and manage all experiences
+- **Host Experience**: Create new experiences
+- **Edit Experience**: Modify existing experiences
+
+### Investment Management
+
+The Control Center includes tools for managing investment properties:
+
+- **Manage Investment**: View and manage all investment properties
+- **Host Investment**: Create new investment properties
+- **Investor Inquiry**: Manage inquiries from potential investors
+
+### Booking Management
+
+The Reservations page allows administrators to view and manage bookings:
+
+- View booking details
+- Update booking status
+- Manage cancellations and refunds
+
+### Messaging System
+
+The Messages page provides an interface for administrators to communicate with users:
+
+- View message history
+- Send and receive messages
+- Manage support requests
+
+### Category Management
+
+Administrators can create and manage categories for listings and experiences:
+
+- View all categories
+- Create new categories
+- Edit existing categories
+
+### Point of Contact (POC) Management
+
+The POC feature allows administrators to manage local contacts for different locations:
+
+- View all POCs
+- Create new POCs
+- Verify POCs
+
+### Promo Code Management
+
+Administrators can create and manage promotional codes:
+
+- View all promo codes
+- Create new promo codes
+- Edit existing promo codes
+
+## Routing
+
+The application uses React Router for navigation. The main routes are defined in the App component:
+
+```javascript
+<Routes>
+  <Route path="/" element={user ? <Home /> : <Navigate to="/user-auth" />} />
+  <Route path="/verify/poc" element={<VerifyPoc />} />
+  <Route
+    path="/manage-stay"
+    element={user ? <ManageStay /> : <Navigate to="/user-auth" />}
+  />
+  <Route
+    path="/manage-experience"
+    element={user ? <ManageExp /> : <Navigate to="/user-auth" />}
+  />
+  <Route
+    path="/manage-investment"
+    element={user ? <ManageInvestment /> : <Navigate to="/user-auth" />}
+  />
+  <Route path="/user-auth" element={!user ? <Auth /> : <Navigate to="/" />} />
+  <Route path="/user" element={<User />} />
+  <Route path="/host-stay/:id" element={<HostStay />} />
+  <Route path="/messages" element={<Messages />} />
+  <Route path="/forgot/password" element={<ForgotPassword />} />
+  <Route path="/change/password" element={<ResetPassword />} />
+  <Route path="/reservations" element={<Reservation />} />
+  <Route path="/category" element={<Category />} />
+  <Route path="/category/create" element={<CreateCategory />} />
+  <Route path="/transactions" element={<Transactions />} />
+  <Route path="/poc" element={<Poc />} />
+  <Route path="/create/poc" element={<CreatePoc />} />
+  <Route path="/edit-stay/:id" element={<EditStay />} />
+  <Route path="/edit-exp/:id" element={<EditExp />} />
+  <Route path="/host-experience/:id" element={<ListExp />} />
+  <Route path="/host-investment" element={<CreateInvestment />} />
+  <Route path="/host-investment/edit/:id" element={<CreateInvestment />} />
+  <Route path="/investor-inquiry" element={<Manageinquiry />} />
+  <Route path="/promo-codes" element={<PromoCode />} />
+  <Route path="/promo-codes/create" element={<PromoCodeForm />} />
+</Routes>
+```
+
+## Context Providers
+
+The application uses several React context providers to manage state:
+
+- **AuthContext**: Manages authentication state
+- **ListingContext**: Manages listing data
+- **ExperienceContext**: Manages experience data
+- **MessageContext**: Manages messaging data
+- **PromoCodeContext**: Manages promo code data
+
+These context providers are wrapped around the application in the App component:
+
+```javascript
+<ExperienceContextProvider>
+  <ListingContextProvider>
+    <MessageContextProvider>
+      <PromoCodeContextProvider>
+        {/* Application content */}
+      </PromoCodeContextProvider>
+    </MessageContextProvider>
+  </ListingContextProvider>
+</ExperienceContextProvider>
+```
+
+## Custom Hooks
+
+The application uses several custom hooks to encapsulate functionality:
+
+- **useAuth**: Manages authentication state
+- **useLogin**: Handles user login
+- **useLogout**: Handles user logout
+
+## Styling
+
+The application uses Tailwind CSS for styling. The primary color is defined in the tailwind.config.js file:
+
+```javascript
+theme: {
+  extend: {
+    colors: {
+      primary: "#3D5554",
+    },
+  },
+},
+```
+
+## API Integration
+
+The Control Center communicates with the backend API using fetch or axios. The base URL for API requests is stored in an environment variable:
+
+```javascript
+const baseUrl = import.meta.env.VITE_API;
+```
+
+## Error Handling
+
+The application uses toast notifications for error handling and user feedback:
+
+```javascript
+import { toast } from "react-toastify";
+
+// Example usage
+if (!response.ok) {
+  toast.error(json.message);
+  setIsLoading(false);
+  setError(json.error);
+}
+```
+
+## Build and Deployment
+
+The application is built using Vite and can be deployed to any static hosting service. The build output is stored in the `dist` directory.
+
+## Security Considerations
+
+- Authentication is handled using JWT tokens
+- Sensitive operations require authentication
+- User sessions are stored in sessionStorage
+- API requests include authentication headers
